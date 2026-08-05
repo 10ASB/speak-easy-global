@@ -1,0 +1,74 @@
+import { FileAudio, Upload } from "lucide-react";
+import { useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+
+type Props = {
+  onFile: (file: File) => void;
+  disabled?: boolean;
+  busyLabel?: string | null;
+};
+
+export function AudioDropzone({ onFile, disabled, busyLabel }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleFiles = (files: FileList | null) => {
+    const file = files?.[0];
+    if (file) onFile(file);
+  };
+
+  return (
+    <div
+      onDragOver={(event) => {
+        event.preventDefault();
+        if (!disabled) setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        if (!disabled) handleFiles(event.dataTransfer.files);
+      }}
+      className={cn(
+        "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card/60 px-6 py-8 text-center transition-colors",
+        dragging && "border-primary bg-accent/40",
+        disabled && "opacity-60",
+      )}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="audio/*,video/webm,video/mp4"
+        className="hidden"
+        onChange={(event) => {
+          handleFiles(event.target.files);
+          event.target.value = "";
+        }}
+      />
+      {busyLabel ? (
+        <>
+          <FileAudio className="size-6 text-primary" />
+          <p className="text-sm text-foreground">{busyLabel}</p>
+        </>
+      ) : (
+        <>
+          <Upload className="size-6 text-muted-foreground" />
+          <p className="text-sm text-foreground">
+            Drop an audio file here, or{" "}
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => inputRef.current?.click()}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              browse
+            </button>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            mp3, wav, m4a, webm, ogg · up to 20 MB · long files are split automatically
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
