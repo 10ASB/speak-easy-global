@@ -1,24 +1,219 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AudioWaveform, ShieldCheck, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { AudioDropzone } from "@/components/AudioDropzone";
+import { HistoryPanel } from "@/components/HistoryPanel";
+import { LanguagePicker } from "@/components/LanguagePicker";
+import { RecorderControls } from "@/components/RecorderControls";
+import { TranscriptPanel } from "@/components/TranscriptPanel";
+import { useTranscription } from "@/hooks/use-transcription";
+import { MAX_UPLOAD_BYTES, decodeFileToWavSegments } from "@/lib/audio";
+import {
+  clearHistory,
+  deleteTranscript,
+  loadHistory,
+  saveTranscript,
+  type TranscriptRecord,
+} from "@/lib/history";
+import { languageLabel } from "@/lib/languages";
+import { startRecorder, type RecorderHandle } from "@/lib/recorder";
+
+const TITLE = "VoiceScribe — Live Voice to Text in 80+ Languages";
+const DESCRIPTION =
+  "Record your voice and watch it become text in real time, or upload an audio file. Auto-detects and transcribes 80+ languages, with transcripts saved privately in your browser.";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: TITLE },
+      { name: "description", content: DESCRIPTION },
+      { property: "og:title", content: TITLE },
+      { property: "og:description", content: DESCRIPTION },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const [language, setLanguage] = useState("auto");
+  const [isRecording, setIsRecording] = useState(false);
+  const [level, setLevel] = useState(0);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [fileStatus, setFileStatus] = useState<string | null>(null);
+  const [history, setHistory] = useState<TranscriptRecord[]>([]);
+
+  const recorder = useRef<RecorderHandle | null>(null);
+  const startedAt = useRef(0);
+  const lastSaved = useRef("");
+  const { committed, partial, isTranscribing, error, setError, setCommitted, transcribe, reset } =
+    useTranscription();
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
+
+  useEffect(() => {
+    if (!isRecording) return;
+    const id = window.setInterval(() => setElapsedMs(Date.now() - startedAt.current), 250);
+    return () => window.clearInterval(id);
+  }, [isRecording]);
+
+  useEffect(() => {
+    if (!error) return;
+    toast.error(error);
+    setError(null);
+  }, [error, setError]);
+
+  const persist = useCallback(
+    (text: string, source: "microphone" | "file") => {
+      const trimmed = text.trim();
+      if (!trimmed || trimmed === lastSaved.current) return;
+      lastSaved.current = trimmed;
+      setHistory(saveTranscript({ text: trimmed, language, source }));
+    },
+    [language],
+  );
+
+  const handleStart = useCallback(async () => {
+    try {
+      recorder.current = await startRecorder({
+        onChunk: (wav) => void transcribe(wav, language),
+        onLevel: setLevel,
+      });
+      startedAt.current = Date.now();
+      setElapsedMs(0);
+      setIsRecording(true);
+      lastSaved.current = "";
+    } catch (err) {
+      const name = (err as Error).name;
+      toast.error(
+        name === "NotAllowedError" || name === "SecurityError"
+          ? "Microphone access is needed to record. Allow it in your browser and try again."
+          : name === "NotFoundError"
+            ? "No microphone was found on this device."
+            : (err as Error).message || "Could not start recording.",
+      );
+    }
+  }, [language, transcribe]);
+
+  const handleStop = useCallback(async () => {
+    const handle = recorder.current;
+    recorder.current = null;
+    setIsRecording(false);
+    setLevel(0);
+    await handle?.stop();
+  }, []);
+
+  // Save the finished transcript once the queue drains after recording stops.
+  useEffect(() => {
+    if (isRecording || isTranscribing || !committed.trim()) return;
+    persist(committed, fileStatus ? "file" : "microphone");
+  }, [isRecording, isTranscribing, committed, persist, fileStatus]);
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        toast.error("That file is larger than 20 MB. Try a shorter clip.");
+        return;
+      }
+      setFileStatus(`Decoding ${file.name}…`);
+      try {
+        const segments = await decodeFileToWavSegments(file);
+        if (!segments.length) {
+          toast.error("That file has no audio to transcribe.");
+          return;
+        }
+        lastSaved.current = "";
+        for (const [index, segment] of segments.entries()) {
+          setFileStatus(`Transcribing part ${index + 1} of ${segments.length}…`);
+          await transcribe(segment, language);
+        }
+        toast.success("Transcription complete.");
+      } catch {
+        toast.error("That audio file could not be decoded. Try mp3, wav, m4a, or webm.");
+      } finally {
+        setFileStatus(null);
+      }
+    },
+    [language, transcribe],
+  );
+
+  const handleClear = useCallback(() => {
+    reset();
+    lastSaved.current = "";
+    setElapsedMs(0);
+  }, [reset]);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-stage">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="flex items-center gap-2 font-mono text-xs tracking-[0.2em] text-primary uppercase">
+              <AudioWaveform className="size-4" />
+              VoiceScribe
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Speak. See it written.
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+              Live transcription in 80+ languages — record straight from your mic or drop in a file.
+            </p>
+          </div>
+          <LanguagePicker value={language} onChange={setLanguage} disabled={isRecording} />
+        </header>
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <main className="flex flex-col gap-6">
+            <RecorderControls
+              isRecording={isRecording}
+              isTranscribing={isTranscribing}
+              level={level}
+              elapsedMs={elapsedMs}
+              onStart={handleStart}
+              onStop={handleStop}
+              disabled={!!fileStatus}
+            />
+
+            <TranscriptPanel
+              committed={committed}
+              partial={partial}
+              languageLabel={languageLabel(language)}
+              onClear={handleClear}
+            />
+
+            <AudioDropzone onFile={handleFile} disabled={isRecording} busyLabel={fileStatus} />
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <p className="flex items-start gap-2 rounded-xl border border-border bg-card/50 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
+                Leave the language on Auto-detect and just start talking — switch it manually for
+                noisy audio or heavy accents.
+              </p>
+              <p className="flex items-start gap-2 rounded-xl border border-border bg-card/50 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                Transcripts stay in this browser. Audio is only sent for transcription and never
+                stored.
+              </p>
+            </div>
+          </main>
+
+          <HistoryPanel
+            items={history}
+            onOpen={(record) => {
+              handleClear();
+              lastSaved.current = record.text.trim();
+              setCommitted(record.text);
+            }}
+            onDelete={(id) => setHistory(deleteTranscript(id))}
+            onClearAll={() => setHistory(clearHistory())}
+          />
+        </div>
+      </div>
     </div>
   );
 }
