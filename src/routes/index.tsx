@@ -199,8 +199,10 @@ function Index() {
               committed={committed}
               partial={partial}
               languageLabel={languageLabel(language)}
+              isLive={isRecording || isTranscribing}
               onClear={handleClear}
             />
+
 
             <AudioDropzone onFile={handleFile} disabled={isRecording} busyLabel={fileStatus} />
 
