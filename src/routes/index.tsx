@@ -148,6 +148,22 @@ function Index() {
     setElapsedMs(0);
   }, [reset]);
 
+  // Space toggles recording when focus isn't in a field or control.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.code !== "Space" || event.repeat || event.metaKey || event.ctrlKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, button, [role='combobox'], [contenteditable='true']"))
+        return;
+      event.preventDefault();
+      if (isRecording) void handleStop();
+      else if (!fileStatus) void handleStart();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isRecording, fileStatus, handleStart, handleStop]);
+
+
   return (
     <div className="min-h-screen bg-stage">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
@@ -183,8 +199,10 @@ function Index() {
               committed={committed}
               partial={partial}
               languageLabel={languageLabel(language)}
+              isLive={isRecording || isTranscribing}
               onClear={handleClear}
             />
+
 
             <AudioDropzone onFile={handleFile} disabled={isRecording} busyLabel={fileStatus} />
 
