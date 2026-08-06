@@ -49,12 +49,20 @@ export function AudioDropzone({ onFile, disabled, busyLabel }: Props) {
       />
       {busyLabel ? (
         <>
-          <FileAudio className="size-6 text-primary" />
+          <FileAudio className="size-6 animate-pulse text-primary" />
           <p className="text-sm text-foreground">{busyLabel}</p>
         </>
       ) : (
         <>
-          <Upload className="size-6 text-muted-foreground" />
+          <Upload
+            className={cn(
+              "size-6 transition-all duration-200",
+              dragging
+                ? "-translate-y-1 text-primary"
+                : "text-muted-foreground group-hover:-translate-y-0.5 group-hover:text-primary",
+            )}
+          />
+
           <p className="text-sm text-foreground">
             Drop an audio file here, or{" "}
             <button
