@@ -30,10 +30,12 @@ export function AudioDropzone({ onFile, disabled, busyLabel }: Props) {
         if (!disabled) handleFiles(event.dataTransfer.files);
       }}
       className={cn(
-        "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card/60 px-6 py-8 text-center transition-colors",
-        dragging && "border-primary bg-accent/40",
+        "group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card/60 px-6 py-8 text-center transition-all duration-200",
+        !disabled && "hover:border-primary/60 hover:bg-card",
+        dragging && "scale-[1.01] border-primary bg-accent/40 shadow-[0_0_0_1px_var(--color-primary)]",
         disabled && "opacity-60",
       )}
+
     >
       <input
         ref={inputRef}
