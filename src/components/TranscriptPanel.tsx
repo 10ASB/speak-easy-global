@@ -2,6 +2,7 @@ import { Check, Copy, Download, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { detectScripts } from "@/lib/detect-language";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -23,6 +24,7 @@ export function TranscriptPanel({
   const scroller = useRef<HTMLDivElement>(null);
   const fullText = [committed, partial].filter(Boolean).join(" ").trim();
   const words = fullText ? fullText.split(/\s+/).length : 0;
+  const detected = detectScripts(fullText).slice(0, 4);
 
   // Keep the newest words in view while text streams in.
   useEffect(() => {
@@ -62,6 +64,15 @@ export function TranscriptPanel({
           <Badge variant="secondary" className="font-mono text-[11px]">
             {languageLabel}
           </Badge>
+          {detected.map((script) => (
+            <Badge
+              key={script.label}
+              variant="outline"
+              className="rise-in border-primary/40 font-mono text-[11px] text-primary"
+            >
+              {script.label}
+            </Badge>
+          ))}
           {isLive && (
             <span className="breathe flex items-center gap-1.5 font-mono text-[11px] tracking-wide text-primary uppercase">
               <span className="inline-block size-1.5 rounded-full bg-primary" />
