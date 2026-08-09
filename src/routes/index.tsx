@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AudioWaveform, ShieldCheck, Sparkles } from "lucide-react";
+import { AudioWaveform, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AudioDropzone } from "@/components/AudioDropzone";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { LanguagePicker } from "@/components/LanguagePicker";
+import { PlaybackView } from "@/components/PlaybackView";
 import { RecorderControls } from "@/components/RecorderControls";
 import { TranscriptPanel } from "@/components/TranscriptPanel";
 import { useTranscription } from "@/hooks/use-transcription";
@@ -45,6 +46,7 @@ function Index() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [fileStatus, setFileStatus] = useState<string | null>(null);
   const [history, setHistory] = useState<TranscriptRecord[]>([]);
+  const [woke, setWoke] = useState(false);
 
   const recorder = useRef<RecorderHandle | null>(null);
   const startedAt = useRef(0);
