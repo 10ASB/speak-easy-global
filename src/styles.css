@@ -43,6 +43,14 @@
   --color-live: var(--live);
   --color-live-foreground: var(--live-foreground);
   --color-stage: var(--stage);
+  --color-lang-1: var(--lang-1);
+  --color-lang-2: var(--lang-2);
+  --color-lang-3: var(--lang-3);
+  --color-lang-4: var(--lang-4);
+  --color-lang-5: var(--lang-5);
+  --color-lang-6: var(--lang-6);
+  --color-lang-7: var(--lang-7);
+  --color-lang-8: var(--lang-8);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
