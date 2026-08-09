@@ -163,9 +163,36 @@ function Index() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isRecording, fileStatus, handleStart, handleStop]);
 
+  // Wake-up hotkey (the Windows+H equivalent for this app): Ctrl/⌘ + Shift + H
+  // starts listening from anywhere on the page and flashes the wake overlay.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.repeat || !event.shiftKey || !(event.ctrlKey || event.metaKey)) return;
+      if (event.key.toLowerCase() !== "h") return;
+      event.preventDefault();
+      if (isRecording) {
+        void handleStop();
+        return;
+      }
+      if (fileStatus) return;
+      setWoke(true);
+      window.setTimeout(() => setWoke(false), 1400);
+      void handleStart();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isRecording, fileStatus, handleStart, handleStop]);
 
   return (
-    <div className="min-h-screen bg-stage">
+    <div className="aurora min-h-screen bg-stage">
+      {woke && (
+        <div className="pointer-events-none fixed inset-x-0 top-6 z-50 flex justify-center">
+          <div className="rise-in lang-wash flex items-center gap-2 rounded-full border border-primary/50 px-4 py-2 font-mono text-xs tracking-wide text-foreground uppercase shadow-lg">
+            <Zap className="size-4 text-primary" />
+            VoiceScribe is listening
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -173,11 +200,26 @@ function Index() {
               <AudioWaveform className="size-4" />
               VoiceScribe
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            <h1 className="mt-2 bg-gradient-to-r from-lang-1 via-lang-3 to-lang-4 bg-clip-text text-3xl font-semibold tracking-tight text-transparent sm:text-4xl">
               Speak. See it written.
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
               Live transcription in 80+ languages — record straight from your mic or drop in a file.
+            </p>
+            <p className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <Zap className="size-3.5 text-primary" />
+              Wake it anywhere with
+              <kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+                Ctrl
+              </kbd>
+              +
+              <kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+                Shift
+              </kbd>
+              +
+              <kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+                H
+              </kbd>
             </p>
           </div>
           <LanguagePicker value={language} onChange={setLanguage} disabled={isRecording} />
@@ -203,17 +245,21 @@ function Index() {
               onClear={handleClear}
             />
 
+            <PlaybackView
+              text={[committed, partial].filter(Boolean).join(" ").trim()}
+              isLive={isRecording || isTranscribing}
+            />
 
             <AudioDropzone onFile={handleFile} disabled={isRecording} busyLabel={fileStatus} />
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <p className="flex items-start gap-2 rounded-xl border border-border bg-card/50 px-4 py-3 text-xs leading-5 text-muted-foreground">
-                <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
+              <p className="flex items-start gap-2 rounded-xl border border-lang-3/30 bg-card/50 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                <Sparkles className="mt-0.5 size-4 shrink-0 text-lang-3" />
                 Leave the language on Auto-detect and just start talking — switch it manually for
                 noisy audio or heavy accents.
               </p>
-              <p className="flex items-start gap-2 rounded-xl border border-border bg-card/50 px-4 py-3 text-xs leading-5 text-muted-foreground">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+              <p className="flex items-start gap-2 rounded-xl border border-lang-2/30 bg-card/50 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-lang-2" />
                 Transcripts stay in this browser. Audio is only sent for transcription and never
                 stored.
               </p>
@@ -235,3 +281,4 @@ function Index() {
     </div>
   );
 }
+
