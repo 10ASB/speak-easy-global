@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AudioDropzone } from "@/components/AudioDropzone";
+import { DictationOverlay } from "@/components/DictationOverlay";
 import { HistoryPanel } from "@/components/HistoryPanel";
+
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { PlaybackView } from "@/components/PlaybackView";
 import { RecorderControls } from "@/components/RecorderControls";
