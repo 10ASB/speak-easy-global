@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AudioDropzone } from "@/components/AudioDropzone";
+import { Button } from "@/components/ui/button";
+
 import { DictationOverlay } from "@/components/DictationOverlay";
 import { HistoryPanel } from "@/components/HistoryPanel";
 
