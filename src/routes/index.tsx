@@ -166,7 +166,7 @@ function Index() {
   }, [isRecording, fileStatus, handleStart, handleStop]);
 
   // Wake-up hotkey (the Windows+H equivalent for this app): Ctrl/⌘ + Shift + H
-  // starts listening from anywhere on the page and flashes the wake overlay.
+  // opens the floating dictation capsule and starts listening right away.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.repeat || !event.shiftKey || !(event.ctrlKey || event.metaKey)) return;
@@ -178,7 +178,6 @@ function Index() {
       }
       if (fileStatus) return;
       setWoke(true);
-      window.setTimeout(() => setWoke(false), 1400);
       void handleStart();
     };
     window.addEventListener("keydown", onKey);
@@ -187,14 +186,18 @@ function Index() {
 
   return (
     <div className="aurora min-h-screen bg-stage">
-      {woke && (
-        <div className="pointer-events-none fixed inset-x-0 top-6 z-50 flex justify-center">
-          <div className="rise-in lang-wash flex items-center gap-2 rounded-full border border-primary/50 px-4 py-2 font-mono text-xs tracking-wide text-foreground uppercase shadow-lg">
-            <Zap className="size-4 text-primary" />
-            VoiceScribe is listening
-          </div>
-        </div>
-      )}
+      <DictationOverlay
+        open={woke}
+        isRecording={isRecording}
+        isTranscribing={isTranscribing}
+        level={level}
+        elapsedMs={elapsedMs}
+        text={[committed, partial].filter(Boolean).join(" ").trim()}
+        onStart={handleStart}
+        onStop={handleStop}
+        onClose={() => setWoke(false)}
+      />
+
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
