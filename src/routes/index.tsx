@@ -229,8 +229,21 @@ function Index() {
               </kbd>
             </p>
           </div>
-          <LanguagePicker value={language} onChange={setLanguage} disabled={isRecording} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => {
+                setWoke(true);
+                if (!isRecording && !fileStatus) void handleStart();
+              }}
+              className="rounded-full transition-transform hover:-translate-y-0.5 active:scale-95"
+            >
+              <Zap className="size-4" />
+              Dictate now
+            </Button>
+            <LanguagePicker value={language} onChange={setLanguage} disabled={isRecording} />
+          </div>
         </header>
+
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <main className="flex flex-col gap-6">
